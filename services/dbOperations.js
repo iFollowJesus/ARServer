@@ -26,10 +26,17 @@ async function insertDocument(rootname, fPath, exText) {
         // Insert the document into the collection
         const result = await collection.insertOne(document);
 
-        // Create a text index on the 'extractedText' field
-        await collection.createIndex({ extractedText: 'text' });
+        // Check existing indexes from GPT4 https://chat.openai.com/share/f6a5ee1e-48b1-4650-90a9-3e35aa49cb3e
+        const indexes = await collection.indexes();
+        const indexExists = indexes.some(index => index.key.hasOwnProperty('extractedText'));
 
-        console.log('Document inserted with _id:', result.insertedId);
+        if (!indexExists) {
+            // Create a text index on the 'extractedText' field
+            await collection.createIndex({ extractedText: 'text' });
+        } else {
+            console.log('Document inserted with _id:', result.insertedId);
+        }
+        
     } catch (error) {
         console.error('Error inserting document:', error);
     } finally {
