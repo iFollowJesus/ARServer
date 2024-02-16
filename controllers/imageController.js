@@ -4,6 +4,7 @@ const multer = require('multer');
 const cors = require('cors');
 const path = require('path');
 const imageService = require('../services/imageMatchingService');
+const dbOp = require('../services/dbOperations');
 
 const uploadPath = '../uploads/';
 const markerPath = path.join(__dirname, '../image_database/');
@@ -40,7 +41,8 @@ exports.uploadImage = async (req, res) => {
 console.log("before match: ");
 
 exports.matchImage = async (req, res) => {
-    console.log("in the match: ");
+    const startTime = new Date();
+    console.log("start time: " + startTime);
     if (!req.file) {
         console.log("No file uploaded: ");
         return res.status(400).send('No file uploaded.');
@@ -74,7 +76,8 @@ exports.matchImage = async (req, res) => {
 
         console.log(`Best match found: ${bestMatch.filePath}`);
         //constructing filepaths to return files
-        let baseDir = 'c:\\test\\userImg\\';
+        console.log('current wd3: ' + process.cwd());
+        let baseDir = './userImg/';
         let fileNameWithoutExt = path.basename(bestMatch.filePath, path.extname(bestMatch.filePath));
         console.log("filename: " + fileNameWithoutExt);
         // Constructing new file paths
@@ -112,6 +115,10 @@ exports.matchImage = async (req, res) => {
             console.log(`Error in imageController.js: ${console.error(error)}`);
             res.status(500).send(`Error in image matching: ${error.message}`);
         }
+        const endTime = new Date();
+        const duration = endTime - startTime;
+        console.log("end time: " + endTime);
+        console.log("duration: " + duration);
 
     }catch (error) {
             console.log('last catch block');
@@ -154,7 +161,7 @@ exports.studioUpload = async (req, res) => {
         // Save files
         await fs.rename(path.join('uploads/', mediaFile.filename), mediaUploadPath);
         await fs.rename(path.join('uploads/', markerFile.filename), markerUploadPath);
-
+        
         res.send("Files uploaded and renamed successfully.");
     } catch (error) {
         console.log("Error in studio upload");

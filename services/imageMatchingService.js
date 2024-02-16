@@ -80,14 +80,21 @@ const recognizeText = async (image) => {
 
 // Main function to perform image matching
 const performImageMatching = async (imagePath, boxData) => {
+    console.log('current wd: ' + process.cwd());
     const imageToMatch = cv.imread(imagePath);
     const roi = imageToMatch.getRegion(new cv.Rect(boxData.x, boxData.y, boxData.width, boxData.height));
-    cv.imwrite('c:\\test\\roi\\roi.png', roi);
-    const roiPath = 'c:\\test\\roi\\roi.png';
+    try {
+        console.log('try block before imwrite: ');
+        cv.imwrite('./roi/roi.png', roi);
+    } catch (error) {
+        console.error('Failed to write image:', error);
+    }
+    const roiPath = './roi/roi.png';
 
     const textInROI = await recognizeText(roiPath);
-    const bestMatch = await matchImages('c:\\test\\image_database', textInROI);
-
+    console.log('current wd2: ' + process.cwd());
+    const bestMatch = await matchImages('./image_database', textInROI);
+    console.log('current wd3: ' + process.cwd());
     await appendBestMatchData(bestMatch);
     return bestMatch;
 };
