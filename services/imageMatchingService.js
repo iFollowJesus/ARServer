@@ -9,36 +9,43 @@ const Tesseract = require('tesseract.js'); // Tesseract OCR for text recognition
  * @param {string} b - The second string.
  * @returns {number} - The Levenshtein distance.
  */
-function levenshteinDistance(a, b) {
-    if (a.length === 0) return b.length;
-    if (b.length === 0) return a.length;
+function levenshteinDistance(str1, str2) {
+    let l1 = str1.length();
+    let l2 = str2.length();
 
-    const matrix = [];
+    if (l1 == 0)
+        return l2;
+    if (l2 == 0)
+        return l1;
 
-    // Increment along the first column of each row
-    for (let i = 0; i <= b.length; i++) {
-        matrix[i] = [i];
-    }
+    let matrix = new [l1 + 1][l2 + 1];
 
-    // Increment each column in the first row
-    for (let j = 0; j <= a.length; j++) {
+    for (let i = 0; i <= l1; i++)
+        matrix[i][0] = i;
+
+    for (let j = 0; j <= l2; j++)
         matrix[0][j] = j;
-    }
 
-    // Fill in the rest of the matrix
-    for (let i = 1; i <= b.length; i++) {
-        for (let j = 1; j <= a.length; j++) {
-            if (b.charAt(i - 1) === a.charAt(j - 1)) {
-                matrix[i][j] = matrix[i - 1][j - 1];
-            } else {
-                matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, // substitution
-                    Math.min(matrix[i][j - 1] + 1, // insertion
-                        matrix[i - 1][j] + 1)); // deletion
-            }
+    for (let i = 1; i <= l1; i++) {
+        let ch1 = str1.charAt(i - 1);
+
+        for (let j = 1; j <= l2; j++) {
+            let ch2 = str2.charAt(j - 1);
+
+            let match = ch1 == ch2 ? 0 : 1;
+
+            matrix[i][j] = 
+            Math.min(
+                Math.min(
+                    (matrix[i - 1] + 1),
+                    (matrix[i][j - 1] + 1)
+                ),
+                matrix[i - 1][j - 1] + m
+            );
         }
     }
 
-    return matrix[b.length][a.length];
+    return matrix[l1][l2];
 }
 
 /**
