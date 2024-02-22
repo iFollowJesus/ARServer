@@ -155,5 +155,8 @@ const appendBestMatchData = async (bestMatch) => {
 
 
 module.exports = {
-    performImageMatching
+    performImageMatching,
+    levenshteinDistance,
+    calculateTextSimilarity
 };
+
