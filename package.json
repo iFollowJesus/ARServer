@@ -1,7 +1,7 @@
 {
   "name": "test",
   "version": "1.0.0",
-  "description": "",
+  "description": "*The entry point for http requests is app.js\r *the routing file is in routes/imageRoutes.js\r *image operations are controlled under controllers/imageController.js\r *image_database is actually just a file system for storing uploaded images\r *roi (region of interest)-stores the current target location\r *services are handled by ocrService.js (text recignition), imageMatchingService.js (Levenstien Distance Fomula Opperation), and dbOperations.js (Database Operations)\r *test-tess.js teseract test\r *varTest.js\r *genVariant.js",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -19,5 +19,6 @@
     "path": "^0.12.7",
     "sharp": "^0.33.2",
     "tesseract.js": "^5.0.3"
-  }
+  },
+  "devDependencies": {}
 }
