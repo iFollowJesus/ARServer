@@ -1,14 +1,117 @@
 const cv = require('@u4/opencv4nodejs');
 const path = require('path');
 const fsSync = require('fs'); // For sync operations
-const Tesseract = require('tesseract.js'); // Tesseract OCR for text recognition
+const Tesseract = require('tesseract.js');
 
-/**
- * Calculates the Levenshtein distance between two strings.
- * @param {string} a - The first string.
- * @param {string} b - The second string.
- * @returns {number} - The Levenshtein distance.
- */
+const performImageMatching = async (imagePath, boxData) => {
+    // Extract image file
+    const imageToMatch = cv.imread(imagePath); // This is the uploaded image
+
+    // logic to read the image and perform matching
+    // Now use boxX, boxY, boxWidth, and boxHeight to define the ROI
+    const roi = imageToMatch.getRegion(new cv.Rect(boxData.x, boxData.y, boxData.width, boxData.height));
+    //print roi cords to log
+    console.log("x ", boxData.x);
+    console.log("y ", boxData.y);
+    console.log("width ", boxData.width);
+    console.log("height ", boxData.height);
+    //save roi to check contents
+    cv.imwrite('c:\\test\\roi\\roi.png', roi);
+    // Placeholder for best match data
+    let bestMatch = { filePath: null, score: 0 };
+    // Read database images and perform matching
+    console.log("Current Working Directory:", process.cwd());
+    const databasePath = './image_database';
+    console.log(databasePath);
+    const files = fsSync.readdirSync(databasePath);
+
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const filePath = path.join(databasePath, file);
+        // Assuming cv.imread and other variables/functions are defined correctly
+        const dbImage = cv.imread(filePath);
+        console.log("file path: " + filePath);
+    
+        // Perform template matching
+        const matched = dbImage.matchTemplate(roi, cv.TM_CCOEFF_NORMED);
+        const minMax = matched.minMaxLoc();
+        const score = minMax.maxVal;
+    
+        console.log(`Match Results:`, matched);
+        console.log(`Min and Max Locations:`, minMax);
+        console.log(`Score: ${score}`);
+    
+        // Update the best match if the current score is greater
+        if (score > bestMatch.score) {
+            bestMatch = { filePath, score };
+            if(bestMatch.score > .75) {
+                break; // This will now correctly exit the loop
+            }
+        }
+    }
+
+    try {
+        console.log("in try: ");
+        if (bestMatch.score > 0.65) {
+            // Check if bestMatch.filePath is valid
+            console.log("in try first check: ");
+            if (!bestMatch.filePath) {
+                throw new Error("File path is missing in bestMatch object");
+            }
+
+            // Fetch the corresponding image from c:\test\userImg
+            const correspondingImagePath = `c:\\test\\userImg\\${path.basename(bestMatch.filePath)}`;
+
+            // Additional check: Verify if the file exists (requires fs module)
+            if (!fsSync.existsSync(correspondingImagePath)) {
+                throw new Error(`File not found: ${correspondingImagePath}`);
+            }
+            console.log("End of betMatch in if: ");
+            return bestMatch;//first return this logic might be wrong.. there is a second return later for now it will be left as is. 
+        } else {
+            // Handle the case where score is below the threshold or bestMatch is not valid
+            console.log("no match: ");
+            throw new Error("No suitable match found or bestMatch is undefined");
+        }
+    } catch (error) {
+        console.log("Its a ukalyley terry.. ");
+        console.error(`Error occurred: ${error.message}`);
+        // Return null or handle the error as per your application's needs
+        return null;
+    }
+
+
+    await appendBestMatchData(bestMatch);
+    return bestMatch;
+    console.log("bestMatch returned");
+
+};
+
+
+const appendBestMatchData = async (bestMatch) => {
+    const bestMatchDataPath = './BestMatchData/BestMatchData.json';
+
+    let data = [];
+
+    // Check if the file exists and is not empty
+    if (fsSync.existsSync(bestMatchDataPath) && fsSync.statSync(bestMatchDataPath).size > 0) {
+        const fileContent = fsSync.readFileSync(bestMatchDataPath, 'utf8');
+        try {
+            data = JSON.parse(fileContent);
+        } catch (error) {
+            console.error("Error parsing JSON from file:", error);
+            // Handle the error (e.g., initialize data as an empty array or log the error)
+        }
+    }
+
+    // Append the new data
+    data.push(bestMatch);
+
+    // Write the updated array back to the file
+    await fsSync.writeFileSync(bestMatchDataPath, JSON.stringify(data, null, 2));
+    console.log("End of append.. ");
+};
+
 function levenshteinDistance(str1, str2) {
     let l1 = str1.length();
     let l2 = str2.length();
@@ -48,12 +151,6 @@ function levenshteinDistance(str1, str2) {
     return matrix[l1][l2];
 }
 
-/**
- * Calculates the similarity score based on the Levenshtein distance.
- * @param {string} text1 - The first text string.
- * @param {string} text2 - The second text string.
- * @returns {number} - A normalized similarity score between 0 and 1.
- */
 function calculateTextSimilarity(text1, text2) {
     const distance = levenshteinDistance(text1, text2);
     // Normalize the score: 1 means identical, 0 means completely different
@@ -61,102 +158,9 @@ function calculateTextSimilarity(text1, text2) {
     return longestLength === 0 ? 1 : (1 - distance / longestLength);
 }
 
-/**
- * Calculates the score based on the text extracted from ROI.
- * @param {string} textInROI - The text extracted from the ROI.
- * @param {string} textInDB - The text extracted from the database image.
- * @returns {number} - A score representing how well the texts match.
- */
-function calculateScore(textInROI, textInDB) {
-    return calculateTextSimilarity(textInROI, textInDB);
-}
-
-// Text Detection and Recognition
-const recognizeText = async (image) => {
-    try {
-        const { data: { text } } = await Tesseract.recognize(image, 'eng', {
-            logger: m => console.log(m)
-        });
-        console.log('Recognized Text:', text); // Recognized text
-        return text;
-    } catch (error) {
-        console.error('Error during text recognition:', error);
-        return '';
-    }
-};
-
-// Main function to perform image matching
-const performImageMatching = async (imagePath, boxData) => {
-    console.log('current wd: ' + process.cwd());
-    const imageToMatch = cv.imread(imagePath);
-    const roi = imageToMatch.getRegion(new cv.Rect(boxData.x, boxData.y, boxData.width, boxData.height));
-    try {
-        console.log('try block before imwrite: ');
-        cv.imwrite('./roi/roi.png', roi);
-    } catch (error) {
-        console.error('Failed to write image:', error);
-    }
-    const roiPath = './roi/roi.png';
-
-    const textInROI = await recognizeText(roiPath);
-    console.log('current wd2: ' + process.cwd());
-    const bestMatch = await matchImages('./image_database', textInROI);
-    console.log('current wd3: ' + process.cwd());
-    await appendBestMatchData(bestMatch);
-    return bestMatch;
-};
-
-// Matches images from the database
-async function matchImages(databasePath, textInROI) {
-    let bestMatch = { filePath: null, score: 0 };
-    const files = fsSync.readdirSync(databasePath);
-
-    for (const file of files) {
-        const filePath = path.join(databasePath, file);
-        try {
-            const textInDB = await recognizeText(filePath);
-            const score = calculateScore(textInROI, textInDB);
-
-            if (score > bestMatch.score) {
-                bestMatch = { filePath, score };
-            }
-        } catch (error) {
-            console.error(`Error processing file ${filePath}:`, error);
-        }
-    }
-
-    return bestMatch;
-}
-
-
-const appendBestMatchData = async (bestMatch) => {
-    const bestMatchDataPath = './BestMatchData/BestMatchData.json';
-
-    let data = [];
-
-    // Check if the file exists and is not empty
-    if (fsSync.existsSync(bestMatchDataPath) && fsSync.statSync(bestMatchDataPath).size > 0) {
-        const fileContent = fsSync.readFileSync(bestMatchDataPath, 'utf8');
-        try {
-            data = JSON.parse(fileContent);
-        } catch (error) {
-            console.error("Error parsing JSON from file:", error);
-            // Handle the error (e.g., initialize data as an empty array or log the error)
-        }
-    }
-
-    // Append the new data
-    data.push(bestMatch);
-
-    // Write the updated array back to the file
-    await fsSync.writeFileSync(bestMatchDataPath, JSON.stringify(data, null, 2));
-    console.log("End of append.. ");
-};
-
 
 module.exports = {
     performImageMatching,
     levenshteinDistance,
     calculateTextSimilarity
 };
-
