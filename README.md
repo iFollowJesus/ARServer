@@ -12,10 +12,16 @@
 
 ## OPENCV Install Instructions
 # Server Setup 
-After running usual npm commands 
+* curl -0- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+* bash
+* cd back/to/repo/directory
 1. nvm install v16 
 
 2. npm init 
+
+3. pnpm install -g node-gyp
+
+4. pnpm setup
 
 If 1st install set up environment variables: 
 
