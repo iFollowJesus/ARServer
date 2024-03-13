@@ -45,6 +45,9 @@ app.get('/', (req, res) => {
 // Use the imageRoutes for any requests to "/api/images"
 app.use('/api/images', imageRoutes);
 
+// use the androidRoutes for retrieveMedia, and retrieveMarkers
+app.use('/api/android', androidRoutes);
+
 // Start the server
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on http://localhost:${PORT}`);
